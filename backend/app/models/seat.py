@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, UniqueConstraint, func
+from sqlalchemy import BigInteger, DateTime, ForeignKey, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -13,8 +13,9 @@ class Seat(Base):
         UniqueConstraint("concert_id", "seat_code", name="uq_concert_seat_code"),
     )
 
-    seat_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    seat_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     concert_id: Mapped[int] = mapped_column(
+        BigInteger,
         ForeignKey("concerts.concert_id"),
         nullable=False,
     )

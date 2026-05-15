@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, Integer, String, func
+from sqlalchemy import BigInteger, DateTime, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -10,7 +10,7 @@ class Concert(Base):
     # 공연 기본 정보를 저장하는 테이블
     __tablename__ = "concerts"
 
-    concert_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    concert_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     title: Mapped[str] = mapped_column(String(100), nullable=False)
     venue: Mapped[str] = mapped_column(String(100), nullable=False)
     concert_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
