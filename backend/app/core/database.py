@@ -35,3 +35,11 @@ def get_db() -> Generator[Session, None, None]:
         yield db
     finally:
         db.close()
+
+
+def init_db() -> None:
+    # 모델을 import해야 SQLAlchemy가 생성할 테이블 목록을 알 수 있다.
+    import app.models 
+
+    # 1차 실험용으로 앱 시작 시 없는 테이블만 자동 생성한다.
+    Base.metadata.create_all(bind=engine)
