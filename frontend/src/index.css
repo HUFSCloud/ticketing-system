@@ -1,0 +1,152 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #0f172a;
+  color: #f1f5f9;
+  min-height: 100vh;
+}
+
+/* ── 페이지 레이아웃 ─────────────────────────────── */
+.page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.page-header {
+  margin-bottom: 2rem;
+  border-bottom: 1px solid #1e293b;
+  padding-bottom: 1.5rem;
+}
+
+.page-header__title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.page-header__subtitle {
+  margin-top: 0.4rem;
+  font-size: 0.95rem;
+  color: #94a3b8;
+}
+
+/* ── 공연 카드 그리드 ────────────────────────────── */
+.concert-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 1.25rem;
+}
+
+.concert-card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: border-color 0.2s, transform 0.2s;
+}
+
+.concert-card:hover {
+  border-color: #6366f1;
+  transform: translateY(-2px);
+}
+
+.concert-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.concert-card__title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.concert-card__remaining {
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.concert-card__artist {
+  font-size: 0.9rem;
+  color: #a78bfa;
+  font-weight: 500;
+}
+
+.concert-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.88rem;
+  color: #94a3b8;
+}
+
+.concert-card__btn {
+  margin-top: auto;
+  padding: 0.65rem 1rem;
+  background: #6366f1;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.concert-card__btn:hover:not(:disabled) {
+  background: #4f46e5;
+}
+
+.concert-card__btn--disabled {
+  background: #334155;
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+/* ── 좌석 선택 플레이스홀더 ─────────────────────── */
+.back-btn {
+  background: none;
+  border: none;
+  color: #6366f1;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 0.75rem;
+  display: block;
+}
+
+.back-btn:hover {
+  text-decoration: underline;
+}
+
+.placeholder {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+}
+
+.placeholder__box {
+  text-align: center;
+  color: #475569;
+  font-size: 1.1rem;
+  line-height: 2;
+  border: 2px dashed #334155;
+  border-radius: 12px;
+  padding: 3rem 4rem;
+}
