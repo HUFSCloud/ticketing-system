@@ -6,56 +6,84 @@
 
 - `backend`: FastAPI 백엔드 애플리케이션
 - `frontend`: 프론트엔드 애플리케이션 자리
-- `infra/locust`: Locust 부하 테스트 코드 자리
+- `infra`: 인프라 및 부하 테스트 관련 파일 자리
+- `docs`: ERD, API 명세, 백엔드 구조/로직 문서
+- `for_work`: 작업 계획, 실행 가이드, 발표 준비 자료
 
-## 현재 구현 범위
-
-현재 구현된 범위는 다음과 같습니다.
+## 현재 백엔드 구현 범위
 
 - FastAPI 서버 실행
 - 환경변수 기반 설정 로딩
-- MySQL 연결 설정
-- SQLAlchemy 모델 정의
-  - `concerts`
-  - `seats`
-  - `tickets`
-- 서버 시작 시 테이블 자동 생성
-- 공연 목록 조회 API
-- 좌석 목록 조회 API
-- 0단계 직접 예매 API
-- 더미 데이터 생성 스크립트
-- 조건부 UPDATE 기반 중복 예매 방지
+- MySQL 연결 및 SQLAlchemy 세션 관리
+- Redis 좌석 임시 선점
+- SQS 메시지 전송 준비
+- Lambda worker 처리 로직 준비
+- 더미 데이터 생성 및 초기화
+- 조건부 UPDATE와 unique constraint 기반 중복 예매 방지
 
-현재 백엔드는 0단계 실험용 최소 API를 제공합니다.
+주요 테이블:
+
+- `concerts`
+- `seats`
+- `tickets`
+- `ticket_requests`
+
+## API 목록
+
+최종 예매 흐름에서 사용하는 API:
 
 ```text
 GET  /health
 GET  /concerts
 GET  /concerts/{concert_id}/seats
+POST /seats/hold
+POST /payments/confirm
+GET  /requests/{request_id}
+```
+
+실험/검증용 API:
+
+```text
 POST /tickets/direct
 ```
 
-## 로컬 테스트 방법
+## 로컬 실행
 
-### 최초 1회 실행
+### 1. 환경변수 준비
 
 ```bash
 cp .env.example .env
 ```
 
-### 1. 서버 실행
+로컬 Docker 기준 기본값:
+
+```env
+DB_HOST=db
+DB_PORT=3306
+DB_NAME=ticketing
+DB_USER=root
+DB_PASSWORD=root
+REDIS_HOST=redis
+REDIS_PORT=6379
+AWS_REGION=ap-northeast-2
+SQS_QUEUE_URL=
+```
+
+`SQS_QUEUE_URL`이 비어 있으면 로컬 개발 환경으로 보고 SQS 전송은 생략됩니다.
+
+### 2. 서버 실행
 
 ```bash
 docker compose up -d --build
 ```
 
-### 2. 상태 확인
+### 3. 상태 확인
 
 ```bash
 docker compose ps
 ```
 
-### 3. 더미 데이터 삽입
+### 4. 더미 데이터 생성
 
 ```bash
 docker compose exec backend python -m app.dummy_data
@@ -67,18 +95,20 @@ docker compose exec backend python -m app.dummy_data
 Dummy data completed: concert_id=1, seats=1000
 ```
 
-### 4. API 확인
+더미 데이터는 `대동제`, `HUFS`, `2026-05-18 09:00:00`, A/B/C/D 구역 총 1000석으로 생성됩니다.
+
+## API 확인
+
+FastAPI 문서:
+
+```text
+http://localhost:8000/docs
+```
 
 Health check:
 
 ```text
 http://localhost:8000/health
-```
-
-API 문서:
-
-```text
-http://localhost:8000/docs
 ```
 
 공연 목록:
@@ -93,19 +123,11 @@ http://localhost:8000/concerts
 http://localhost:8000/concerts/1/seats
 ```
 
-### FastAPI docs에서 직접 예매 테스트
+## 빠른 로컬 테스트 흐름
 
-FastAPI docs에 접속합니다.
+FastAPI docs에서 아래 순서로 실행합니다.
 
-```text
-http://localhost:8000/docs
-```
-
-직접 예매 첫 번째 요청:
-
-1. `POST /tickets/direct` 항목을 클릭합니다.
-2. `Try it out` 버튼을 클릭합니다.
-3. Request body에 아래 값을 입력합니다.
+1. `POST /seats/hold`
 
 ```json
 {
@@ -115,51 +137,48 @@ http://localhost:8000/docs
 }
 ```
 
-4. `Execute` 버튼을 클릭합니다.
-
-첫 번째 요청은 성공해야 합니다.
+2. `POST /payments/confirm`
 
 ```json
 {
-  "success": true,
-  "message": "예매 성공",
-  "data": {
-    "ticketId": 1
-  }
-}
-```
-
-직접 예매 두 번째 요청:
-
-같은 `seatId`로 `userId`만 바꿔 다시 실행합니다.
-
-```json
-{
+  "requestId": "req-001",
   "concertId": 1,
   "seatId": 1,
-  "userId": "user-002"
+  "userId": "user-001",
+  "idempotencyKey": "pay-001"
 }
 ```
 
-두 번째 요청은 실패해야 합니다.
+로컬에서 `SQS_QUEUE_URL`이 비어 있으면 응답은 `PENDING` 상태로 저장됩니다.
 
-```json
-{
-  "success": false,
-  "message": "이미 판매된 좌석입니다.",
-  "data": null
-}
-```
+3. `GET /requests/req-001`
 
-### 다시 테스트하고 싶을 때
+결제 확정 요청의 현재 처리 상태를 확인합니다.
 
-DB 데이터를 초기화하고 다시 넣습니다.
+## 문서
 
-```bash
-docker compose exec backend python -m app.dummy_data
-```
+- [API 명세서](docs/API_SPEC.md)
+- [ERD](docs/ERD.md)
+- [Backend 폴더 구조](docs/BACKEND_STRUCTURE.md)
+- [Backend 핵심 로직](docs/BACKEND_LOGIC.md)
 
-### 종료
+## AWS 배포 시 설정
+
+코드에 RDS, Redis, SQS, ALB DNS를 직접 적지 않습니다. 배포 환경에서 환경변수로 주입합니다.
+
+- `DB_HOST`: RDS 엔드포인트
+- `DB_PORT`: MySQL 포트
+- `DB_NAME`: DB 이름
+- `DB_USER`: DB 사용자
+- `DB_PASSWORD`: DB 비밀번호
+- `REDIS_HOST`: Redis 엔드포인트
+- `REDIS_PORT`: Redis 포트
+- `AWS_REGION`: AWS 리전
+- `SQS_QUEUE_URL`: SQS 큐 URL
+
+ALB DNS는 코드 설정값이 아니라 프론트엔드, Locust, 브라우저 테스트에서 호출할 Base URL로 사용합니다.
+
+## 종료
 
 ```bash
 docker compose down

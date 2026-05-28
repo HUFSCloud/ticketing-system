@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field
 
 
 class DirectTicketRequest(BaseModel):
-    # 0~1단계 직접 예매 API 요청 데이터이다.
+    # RDS 직접 예매 실험용 API 요청 데이터이다.
     concert_id: int = Field(validation_alias="concertId")
     seat_id: int = Field(validation_alias="seatId")
     user_id: str = Field(validation_alias="userId")

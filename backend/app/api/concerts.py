@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
+from redis.exceptions import RedisError
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.redis import get_hold_users
 from app.models import Concert, Seat
 from app.schemas import ApiResponse, ConcertSeats, ConcertSummary, SeatSummary
 
@@ -55,6 +57,16 @@ def get_concert_seats(concert_id: int, db: Session = Depends(get_db)):
         .order_by(Seat.seat_id)
         .all()
     )
+    available_seat_ids = [
+        seat.seat_id
+        for seat in seats
+        if seat.status == "AVAILABLE"
+    ]
+
+    try:
+        hold_users = get_hold_users(concert_id, available_seat_ids)
+    except RedisError:
+        hold_users = {}
 
     data = ConcertSeats(
         concert_id=concert_id,
@@ -62,7 +74,7 @@ def get_concert_seats(concert_id: int, db: Session = Depends(get_db)):
             SeatSummary(
                 seat_id=seat.seat_id,
                 seat_code=seat.seat_code,
-                status=seat.status,
+                status="HOLD" if seat.seat_id in hold_users else seat.status,
             )
             for seat in seats
         ],

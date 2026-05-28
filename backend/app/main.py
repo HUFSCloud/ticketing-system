@@ -2,7 +2,13 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from app.api import concerts_router, tickets_router
+from app.api import (
+    concerts_router,
+    payments_router,
+    requests_router,
+    seats_router,
+    tickets_router,
+)
 from app.core.config import get_settings
 from app.core.database import init_db
 
@@ -19,6 +25,9 @@ settings = get_settings()
 # FastAPI 앱을 생성하고 API 라우터를 등록한다.
 app = FastAPI(title="Ticketing System API", lifespan=lifespan)
 app.include_router(concerts_router)
+app.include_router(seats_router)
+app.include_router(payments_router)
+app.include_router(requests_router)
 app.include_router(tickets_router)
 
 # 헬스체크 API이다. 서버가 정상적으로 실행 중인지 확인할 때 사용한다.

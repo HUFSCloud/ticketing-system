@@ -1,6 +1,10 @@
 # API 명세서
 
-수정일: 2026-05-15
+작성일: 2026-05-28
+
+## 범위
+
+최종 백엔드 API 명세이다. 실제 예매 흐름은 Redis hold, SQS, Lambda worker, RDS 확정 처리를 기준으로 한다.
 
 Base URL:
 
@@ -10,18 +14,26 @@ http://localhost:8000
 
 ## API 목록
 
+최종 예매 흐름:
+
 ```text
 GET  /health
 GET  /concerts
 GET  /concerts/{concert_id}/seats
+POST /seats/hold
+POST /payments/confirm
+GET  /requests/{request_id}
+```
+
+실험/검증용 API:
+
+```text
 POST /tickets/direct
 ```
 
 ## 1. Health Check
 
 ### `GET /health`
-
-서버 상태 확인용 API이다.
 
 Response:
 
@@ -34,8 +46,6 @@ Response:
 ## 2. 공연 목록 조회
 
 ### `GET /concerts`
-
-공연 목록과 남은 좌석 수를 조회한다.
 
 Response:
 
@@ -59,13 +69,7 @@ Response:
 
 ### `GET /concerts/{concert_id}/seats`
 
-특정 공연의 좌석 목록과 좌석 상태를 조회한다.
-
-Path parameter:
-
-| 이름       | 타입 | 설명    |
-| ---------- | ---- | ------- |
-| concert_id | int  | 공연 ID |
+DB의 `SOLD`와 Redis의 hold 상태를 조합해 반환한다.
 
 Success response:
 
@@ -81,28 +85,25 @@ Success response:
         "status": "AVAILABLE"
       },
       {
-        "seatId": 251,
-        "seatCode": "B-1",
-        "status": "AVAILABLE"
+        "seatId": 2,
+        "seatCode": "A-2",
+        "status": "HOLD"
+      },
+      {
+        "seatId": 3,
+        "seatCode": "A-3",
+        "status": "SOLD"
       }
     ]
   }
 }
 ```
 
-Not found:
-
-```json
-{
-  "detail": "공연을 찾을 수 없습니다."
-}
-```
-
-## 4. 직접 예매
+## 4. RDS 직접 예매 실험용 API
 
 ### `POST /tickets/direct`
 
-Redis, SQS, Lambda 없이 DB에 직접 예매를 반영하는 0~1단계 실험용 API이다.
+Redis, SQS, Lambda 없이 DB에 직접 예매를 반영하는 실험용 API이다.
 
 Request:
 
@@ -126,20 +127,62 @@ Success response:
 }
 ```
 
-Failure responses:
+Failure response examples:
 
 ```json
 {
   "success": false,
-  "message": "공연을 찾을 수 없습니다.",
+  "message": "이미 판매된 좌석입니다.",
   "data": null
 }
 ```
 
+직접 예매는 조건부 UPDATE로 처리한다.
+
+```sql
+UPDATE seats
+SET status = 'SOLD'
+WHERE concert_id = :concert_id
+  AND seat_id = :seat_id
+  AND status = 'AVAILABLE';
+```
+
+## 5. 좌석 임시 선점
+
+### `POST /seats/hold`
+
+Redis `SET NX EX`로 좌석을 300초 동안 임시 선점한다.
+
+Request:
+
+```json
+{
+  "concertId": 1,
+  "seatId": 1,
+  "userId": "user-001"
+}
+```
+
+Success response:
+
+```json
+{
+  "success": true,
+  "message": "좌석이 임시 선점되었습니다.",
+  "data": {
+    "concertId": 1,
+    "seatId": 1,
+    "holdTtlSeconds": 300
+  }
+}
+```
+
+Failure response examples:
+
 ```json
 {
   "success": false,
-  "message": "좌석을 찾을 수 없습니다.",
+  "message": "이미 선택 중인 좌석입니다.",
   "data": null
 }
 ```
@@ -152,30 +195,96 @@ Failure responses:
 }
 ```
 
-## 직접 예매 처리 규칙
+## 6. 결제 확정 요청 접수
 
-예매는 조건부 UPDATE로 처리한다.
+### `POST /payments/confirm`
 
-```sql
-UPDATE seats
-SET status = 'SOLD'
-WHERE concert_id = :concert_id
-  AND seat_id = :seat_id
-  AND status = 'AVAILABLE';
+결제 성공 이벤트를 `ticket_requests`에 `PENDING`으로 저장하고, `SQS_QUEUE_URL`이 있으면 SQS로 전송한다. 결제 확정 요청은 좌석 hold를 생성한 사용자만 접수할 수 있다.
+
+Request:
+
+```json
+{
+  "requestId": "req-001",
+  "concertId": 1,
+  "seatId": 1,
+  "userId": "user-001",
+  "idempotencyKey": "pay-001"
+}
 ```
 
-판단 기준:
+Response:
+
+```json
+{
+  "success": true,
+  "message": "결제 확정 요청이 접수되었습니다.",
+  "data": {
+    "requestId": "req-001",
+    "status": "PENDING"
+  }
+}
+```
+
+Failure response examples:
+
+```json
+{
+  "success": false,
+  "message": "좌석 임시 선점 정보가 유효하지 않습니다.",
+  "data": null
+}
+```
+
+```json
+{
+  "success": false,
+  "message": "이미 판매된 좌석입니다.",
+  "data": null
+}
+```
+
+```json
+{
+  "success": false,
+  "message": "SQS 전송에 실패했습니다.",
+  "data": {
+    "requestId": "req-001",
+    "status": "FAILED"
+  }
+}
+```
+
+## 7. 요청 상태 조회
+
+### `GET /requests/{request_id}`
+
+결제 확정 요청의 처리 상태를 조회한다.
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "requestId": "req-001",
+    "status": "SUCCESS",
+    "message": "예매가 확정되었습니다.",
+    "ticketId": 1
+  }
+}
+```
+
+상태:
 
 ```text
-affected rows = 1 -> 예매 성공
-affected rows = 0 -> 예매 실패
+PENDING
+PROCESSING
+SUCCESS
+FAILED
 ```
 
-`tickets` 테이블의 `UNIQUE(concert_id, seat_id)`도 중복 예매를 막는 방어선으로 사용한다.
-
 ## 더미 데이터
-
-로컬 테스트용 더미 데이터 생성:
 
 ```bash
 docker compose exec backend python -m app.dummy_data

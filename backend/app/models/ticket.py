@@ -17,7 +17,7 @@ class Ticket(Base):
 
     ticket_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
 
-    # 0~1단계 직접 예매에서는 임시 값을 넣고, SQS 단계부터 실제 request/idempotency 값을 사용한다.
+    # 직접 예매 실험용 API에서는 임시 값을 넣고, 최종 예매 흐름에서는 실제 요청 값을 사용한다.
     request_id: Mapped[str] = mapped_column(String(100), nullable=False)
     idempotency_key: Mapped[str] = mapped_column(String(100), nullable=False)
 

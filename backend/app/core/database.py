@@ -1,6 +1,8 @@
 from collections.abc import Generator
+from time import sleep
 
 from sqlalchemy import create_engine
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.core.config import get_settings
@@ -41,5 +43,12 @@ def init_db() -> None:
     # 모델을 import해야 SQLAlchemy가 생성할 테이블 목록을 알 수 있다.
     import app.models
 
-    # 1차 실험용으로 앱 시작 시 없는 테이블만 자동 생성한다.
-    Base.metadata.create_all(bind=engine)
+    # 로컬과 실험 환경에서 앱 시작 시 없는 테이블만 자동 생성한다.
+    for attempt in range(1, 11):
+        try:
+            Base.metadata.create_all(bind=engine)
+            return
+        except OperationalError:
+            if attempt == 10:
+                raise
+            sleep(2)

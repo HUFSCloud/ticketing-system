@@ -21,7 +21,7 @@ class Seat(Base):
     )
     seat_code: Mapped[str] = mapped_column(String(20), nullable=False)
 
-    # RDS에는 최종 상태만 저장한다. Redis hold 단계 전까지는 AVAILABLE/SOLD만 사용한다.
+    # RDS에는 최종 판매 상태만 저장하고, 임시 선점 상태는 Redis에 저장한다.
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="AVAILABLE")
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
