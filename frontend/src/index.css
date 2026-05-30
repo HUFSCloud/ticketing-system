@@ -118,6 +118,18 @@ body {
   cursor: not-allowed;
 }
 
+/* ── 상태 메시지 ─────────────────────────────────── */
+.status-msg {
+  text-align: center;
+  padding: 4rem;
+  color: #64748b;
+  font-size: 1rem;
+}
+
+.status-msg--error {
+  color: #ef4444;
+}
+
 /* ── 좌석 선택 플레이스홀더 ─────────────────────── */
 .back-btn {
   background: none;
