@@ -55,11 +55,35 @@ Response:
   "data": [
     {
       "concertId": 1,
+      "title": "소규모 공연",
+      "venue": "HUFS 소극장",
+      "concertDate": "2026-05-17T18:00:00",
+      "totalSeats": 300,
+      "remainingSeats": 300
+    },
+    {
+      "concertId": 2,
       "title": "대동제",
       "venue": "HUFS",
       "concertDate": "2026-05-18T09:00:00",
       "totalSeats": 1000,
       "remainingSeats": 1000
+    },
+    {
+      "concertId": 3,
+      "title": "아레나 콘서트",
+      "venue": "KSPO DOME",
+      "concertDate": "2026-05-19T19:00:00",
+      "totalSeats": 5000,
+      "remainingSeats": 5000
+    },
+    {
+      "concertId": 4,
+      "title": "스타디움 콘서트",
+      "venue": "Seoul Stadium",
+      "concertDate": "2026-05-20T19:00:00",
+      "totalSeats": 10000,
+      "remainingSeats": 10000
     }
   ]
 }
@@ -293,9 +317,9 @@ docker compose exec backend python -m app.dummy_data
 생성 데이터:
 
 ```text
-공연명: 대동제
-장소: HUFS
-일시: 2026-05-18 09:00:00
-좌석: 1000개
-좌석 구역: A/B/C/D 각 250개
+1번 공연: 소규모 공연, 300석
+2번 공연: 대동제, 1000석
+3번 공연: 아레나 콘서트, 5000석
+4번 공연: 스타디움 콘서트, 10000석
+좌석 구역: 공연별 A/B/C/D 구역
 ```

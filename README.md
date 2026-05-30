@@ -92,10 +92,19 @@ docker compose exec backend python -m app.dummy_data
 정상 출력:
 
 ```text
-Dummy data completed: concert_id=1, seats=1000
+Dummy data completed: concerts=4, seats=16300, details=1:300, 2:1000, 3:5000, 4:10000
 ```
 
-더미 데이터는 `대동제`, `HUFS`, `2026-05-18 09:00:00`, A/B/C/D 구역 총 1000석으로 생성됩니다.
+더미 데이터는 총 4개 공연으로 생성됩니다.
+
+```text
+1번 공연: 소규모 공연, 300석
+2번 공연: 대동제, 1000석
+3번 공연: 아레나 콘서트, 5000석
+4번 공연: 스타디움 콘서트, 10000석
+```
+
+각 공연의 좌석은 A/B/C/D 구역으로 나뉘고, 모든 좌석은 `AVAILABLE` 상태로 생성됩니다.
 
 ## API 확인
 
