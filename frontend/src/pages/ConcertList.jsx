@@ -5,45 +5,69 @@ function formatDate(isoString) {
   const d = new Date(isoString);
   return d.toLocaleDateString("ko-KR", {
     year: "numeric",
-    month: "long",
-    day: "numeric",
-    weekday: "short",
-    hour: "2-digit",
-    minute: "2-digit",
+    month: "2-digit",
+    day: "2-digit",
   });
 }
 
-function remainingLabel(remaining, total) {
-  const ratio = remaining / total;
-  if (remaining === 0) return { text: "매진", color: "#ef4444" };
-  if (ratio < 0.1) return { text: `잔여 ${remaining}석`, color: "#f97316" };
-  return { text: `잔여 ${remaining}석`, color: "#22c55e" };
+function formatTime(isoString) {
+  const d = new Date(isoString);
+  return d.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
 }
 
-function ConcertCard({ concert }) {
+function getStatus(remaining) {
+  if (remaining === 0) return { text: "매진", className: "badge--sold" };
+  return { text: "예매중", className: "badge--on-sale" };
+}
+
+const THUMB_COLORS = [
+  ["#6366f1", "#8b5cf6"],
+  ["#0ea5e9", "#6366f1"],
+  ["#f59e0b", "#ef4444"],
+  ["#10b981", "#0ea5e9"],
+  ["#ec4899", "#f97316"],
+];
+
+function Thumbnail({ index, title }) {
+  const [from, to] = THUMB_COLORS[index % THUMB_COLORS.length];
+  return (
+    <div
+      className="concert-thumb"
+      style={{ background: `linear-gradient(135deg, ${from}, ${to})` }}
+    >
+      <span className="concert-thumb__text">{title.slice(0, 2)}</span>
+    </div>
+  );
+}
+
+function ConcertCard({ concert, index }) {
   const navigate = useNavigate();
-  const label = remainingLabel(concert.remainingSeats, concert.totalSeats);
+  const status = getStatus(concert.remainingSeats);
   const soldOut = concert.remainingSeats === 0;
 
   return (
-    <div className="concert-card">
-      <div className="concert-card__header">
-        <span className="concert-card__title">{concert.title}</span>
-        <span className="concert-card__remaining" style={{ color: label.color }}>
-          {label.text}
-        </span>
-      </div>
-      <div className="concert-card__info">
-        <span>📅 {formatDate(concert.concertDate)}</span>
-        <span>📍 {concert.venue}</span>
-        <span>🎟 총 {concert.totalSeats.toLocaleString()}석</span>
+    <div className="concert-card" onClick={() => !soldOut && navigate(`/concerts/${concert.concertId}/seats`)}>
+      <Thumbnail index={index} title={concert.title} />
+      <div className="concert-card__body">
+        <div className="concert-card__top">
+          <h2 className="concert-card__title">{concert.title}</h2>
+          <span className={`badge ${status.className}`}>{status.text}</span>
+        </div>
+        <div className="concert-card__meta">
+          <span>🗓 {formatDate(concert.concertDate)} {formatTime(concert.concertDate)}</span>
+          <span>📍 {concert.venue}</span>
+          <span>🎟 잔여 {concert.remainingSeats.toLocaleString()} / {concert.totalSeats.toLocaleString()}석</span>
+        </div>
       </div>
       <button
-        className={`concert-card__btn${soldOut ? " concert-card__btn--disabled" : ""}`}
+        className={`book-btn${soldOut ? " book-btn--disabled" : ""}`}
         disabled={soldOut}
-        onClick={() => navigate(`/concerts/${concert.concertId}/seats`)}
+        onClick={(e) => {
+          e.stopPropagation();
+          navigate(`/concerts/${concert.concertId}/seats`);
+        }}
       >
-        {soldOut ? "매진" : "좌석 선택"}
+        {soldOut ? "매진" : "예매하기"}
       </button>
     </div>
   );
@@ -60,21 +84,15 @@ export default function ConcertList() {
         if (!res.ok) throw new Error(`서버 오류 (${res.status})`);
         return res.json();
       })
-      .then((json) => {
-        setConcerts(json.data);
-      })
-      .catch((err) => {
-        setError(err.message);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+      .then((json) => setConcerts(json.data))
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
   }, []);
 
   return (
     <div className="page">
       <header className="page-header">
-        <h1 className="page-header__title">🎵 공연 목록</h1>
+        <h1 className="page-header__logo">HUFS <span>티켓</span></h1>
         <p className="page-header__subtitle">원하는 공연을 선택하세요</p>
       </header>
       <main>
@@ -84,9 +102,9 @@ export default function ConcertList() {
           <p className="status-msg">등록된 공연이 없습니다.</p>
         )}
         {!loading && !error && concerts.length > 0 && (
-          <div className="concert-grid">
-            {concerts.map((c) => (
-              <ConcertCard key={c.concertId} concert={c} />
+          <div className="concert-list">
+            {concerts.map((c, i) => (
+              <ConcertCard key={c.concertId} concert={c} index={i} />
             ))}
           </div>
         )}

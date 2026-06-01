@@ -6,115 +6,155 @@
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: #0f172a;
-  color: #f1f5f9;
+  background: #f1f5f9;
+  color: #1e293b;
   min-height: 100vh;
 }
 
 /* ── 페이지 레이아웃 ─────────────────────────────── */
 .page {
-  max-width: 900px;
+  max-width: 780px;
   margin: 0 auto;
-  padding: 2rem 1rem;
+  padding: 2rem 1rem 4rem;
 }
 
+/* ── 헤더 ────────────────────────────────────────── */
 .page-header {
-  margin-bottom: 2rem;
-  border-bottom: 1px solid #1e293b;
-  padding-bottom: 1.5rem;
+  margin-bottom: 1.75rem;
 }
 
-.page-header__title {
+.page-header__logo {
   font-size: 2rem;
-  font-weight: 700;
-  color: #f8fafc;
+  font-weight: 900;
+  color: #1e293b;
+}
+
+.page-header__logo span {
+  color: #6366f1;
 }
 
 .page-header__subtitle {
-  margin-top: 0.4rem;
-  font-size: 0.95rem;
+  margin-top: 0.3rem;
+  font-size: 0.9rem;
   color: #94a3b8;
 }
 
-/* ── 공연 카드 그리드 ────────────────────────────── */
-.concert-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-  gap: 1.25rem;
-}
-
-.concert-card {
-  background: #1e293b;
-  border: 1px solid #334155;
-  border-radius: 12px;
-  padding: 1.5rem;
+/* ── 공연 목록 ───────────────────────────────────── */
+.concert-list {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  transition: border-color 0.2s, transform 0.2s;
+  gap: 1rem;
+}
+
+/* ── 공연 카드 ───────────────────────────────────── */
+.concert-card {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  cursor: pointer;
+  transition: box-shadow 0.2s, transform 0.15s;
 }
 
 .concert-card:hover {
-  border-color: #6366f1;
-  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.15);
+  transform: translateY(-1px);
 }
 
-.concert-card__header {
+/* 썸네일 */
+.concert-thumb {
+  width: 88px;
+  height: 88px;
+  border-radius: 10px;
+  flex-shrink: 0;
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: center;
+}
+
+.concert-thumb__text {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* 본문 */
+.concert-card__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
   gap: 0.5rem;
 }
 
+.concert-card__top {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
 .concert-card__title {
-  font-size: 1.2rem;
+  font-size: 1.05rem;
   font-weight: 700;
-  color: #f8fafc;
-}
-
-.concert-card__remaining {
-  font-size: 0.8rem;
-  font-weight: 600;
+  color: #0f172a;
   white-space: nowrap;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.concert-card__artist {
-  font-size: 0.9rem;
-  color: #a78bfa;
-  font-weight: 500;
-}
-
-.concert-card__info {
+.concert-card__meta {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
-  font-size: 0.88rem;
-  color: #94a3b8;
+  gap: 0.2rem;
+  font-size: 0.82rem;
+  color: #64748b;
 }
 
-.concert-card__btn {
-  margin-top: auto;
-  padding: 0.65rem 1rem;
+/* ── 뱃지 ────────────────────────────────────────── */
+.badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.badge--on-sale {
+  background: #ede9fe;
+  color: #6366f1;
+}
+
+.badge--sold {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+/* ── 예매 버튼 ───────────────────────────────────── */
+.book-btn {
+  flex-shrink: 0;
+  padding: 0.55rem 1.1rem;
   background: #6366f1;
   color: #fff;
   border: none;
   border-radius: 8px;
-  font-size: 0.95rem;
+  font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s;
+  white-space: nowrap;
 }
 
-.concert-card__btn:hover:not(:disabled) {
+.book-btn:hover:not(:disabled) {
   background: #4f46e5;
 }
 
-.concert-card__btn--disabled {
-  background: #334155;
-  color: #64748b;
+.book-btn--disabled {
+  background: #e2e8f0;
+  color: #94a3b8;
   cursor: not-allowed;
 }
 
@@ -122,7 +162,7 @@ body {
 .status-msg {
   text-align: center;
   padding: 4rem;
-  color: #64748b;
+  color: #94a3b8;
   font-size: 1rem;
 }
 
@@ -155,10 +195,10 @@ body {
 
 .placeholder__box {
   text-align: center;
-  color: #475569;
+  color: #94a3b8;
   font-size: 1.1rem;
   line-height: 2;
-  border: 2px dashed #334155;
+  border: 2px dashed #e2e8f0;
   border-radius: 12px;
   padding: 3rem 4rem;
 }
