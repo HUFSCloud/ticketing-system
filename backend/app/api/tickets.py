@@ -1,13 +1,18 @@
+import logging
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends
+from redis.exceptions import RedisError
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.redis import invalidate_seats_cache
 from app.models import Concert, Seat, Ticket
 from app.schemas import DirectTicketData, DirectTicketRequest, DirectTicketResponse
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["tickets"])  # 티켓 관련 API를 묶는 라우터이다.
 
@@ -78,6 +83,11 @@ def create_direct_ticket(
             message="이미 판매된 좌석입니다.",
             data=None,
         )
+
+    try:
+        invalidate_seats_cache(request.concert_id)
+    except RedisError:
+        logger.warning("concert=%d seats cache invalidation failed", request.concert_id)
 
     return DirectTicketResponse(
         success=True,

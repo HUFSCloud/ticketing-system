@@ -1,12 +1,20 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException
 from redis.exceptions import RedisError
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.redis import get_hold_users
+from app.core.redis import (
+    get_hold_users,
+    get_seats_cache,
+    set_seats_cache,
+)
 from app.models import Concert, Seat
 from app.schemas import ApiResponse, ConcertSeats, ConcertSummary, SeatSummary
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["concerts"])  # 공연 관련 API를 묶는 라우터이다.
 
@@ -51,16 +59,41 @@ def get_concert_seats(concert_id: int, db: Session = Depends(get_db)):
     if concert is None:
         raise HTTPException(status_code=404, detail="공연을 찾을 수 없습니다.")
 
-    seats = (
-        db.query(Seat)
-        .filter(Seat.concert_id == concert_id)
-        .order_by(Seat.seat_id)
-        .all()
-    )
+    # 1) Redis 캐시에서 좌석 데이터를 먼저 조회한다.
+    seats_data = None
+    try:
+        seats_data = get_seats_cache(concert_id)
+    except RedisError:
+        logger.warning("concert=%d seats cache read failed, fallback to DB", concert_id)
+
+    if seats_data is not None:
+        # Cache HIT: DB 조회 없이 캐시 데이터를 사용한다.
+        logger.info("concert=%d seats cache hit", concert_id)
+    else:
+        # Cache MISS: DB에서 조회한 뒤 Redis에 저장한다.
+        logger.info("concert=%d seats cache miss", concert_id)
+        seats = (
+            db.query(Seat)
+            .filter(Seat.concert_id == concert_id)
+            .order_by(Seat.seat_id)
+            .all()
+        )
+        seats_data = [
+            {
+                "seat_id": seat.seat_id,
+                "seat_code": seat.seat_code,
+                "status": seat.status,
+            }
+            for seat in seats
+        ]
+        try:
+            set_seats_cache(concert_id, seats_data)
+        except RedisError:
+            logger.warning("concert=%d seats cache write failed", concert_id)
+
+    # 2) AVAILABLE 좌석의 hold 상태를 Redis에서 실시간 조회한다.
     available_seat_ids = [
-        seat.seat_id
-        for seat in seats
-        if seat.status == "AVAILABLE"
+        s["seat_id"] for s in seats_data if s["status"] == "AVAILABLE"
     ]
 
     try:
@@ -72,11 +105,11 @@ def get_concert_seats(concert_id: int, db: Session = Depends(get_db)):
         concert_id=concert_id,
         seats=[
             SeatSummary(
-                seat_id=seat.seat_id,
-                seat_code=seat.seat_code,
-                status="HOLD" if seat.seat_id in hold_users else seat.status,
+                seat_id=s["seat_id"],
+                seat_code=s["seat_code"],
+                status="HOLD" if s["seat_id"] in hold_users else s["status"],
             )
-            for seat in seats
+            for s in seats_data
         ],
     )
 

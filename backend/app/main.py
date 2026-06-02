@@ -1,6 +1,10 @@
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+
+# 애플리케이션 로거가 콘솔에 출력되도록 기본 로그 레벨을 설정한다.
+logging.basicConfig(level=logging.INFO)
 
 from app.api import (
     concerts_router,

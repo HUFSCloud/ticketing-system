@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.database import SessionLocal, init_db
-from app.core.redis import delete_hold, get_hold_user
+from app.core.redis import delete_hold, get_hold_user, invalidate_seats_cache
 from app.models import Ticket, TicketRequest
 
 
@@ -114,6 +114,10 @@ def process_ticket_request(payload: dict[str, Any]) -> None:
         ticket_request.processed_at = datetime.utcnow()
 
         db.commit()
+        try:
+            invalidate_seats_cache(concert_id)
+        except Exception:
+            pass
         delete_hold(concert_id, seat_id)
     finally:
         db.close()
