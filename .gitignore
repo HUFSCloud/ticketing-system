@@ -6,3 +6,4 @@ venv/
 .DS_Store
 node_modules/
 *.egg-info/
+for_work/
